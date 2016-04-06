@@ -14,3 +14,9 @@
 $app->get('/', function () use ($app) {
     return $app->version();
 });
+
+$app->group(['prefix' => 'orders'], function () use ($app) {
+    $app->get('/', 'OrderController@index');
+    $app->post('import', 'OrderController@import');
+    $app->get('/{id}', 'OrderController@show');
+});
