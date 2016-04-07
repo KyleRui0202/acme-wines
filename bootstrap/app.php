@@ -97,4 +97,12 @@ $app->group(['namespace' => 'App\Http\Controllers'], function ($app) {
     require __DIR__.'/../app/Http/routes.php';
 });
 
+
+/*
+|
+| Register custom coniguration files.
+|
+*/
+$app->configure('validation');
+
 return $app;
