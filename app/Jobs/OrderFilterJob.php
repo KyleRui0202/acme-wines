@@ -4,12 +4,13 @@ namespace App\Jobs;
 
 use App\Order;
 
-class OrderFilterJob extends Job
+class OrderFilterJob extends SyncJob
 {
+
     /**
-     * The query builder instance.
+     * The eloquent or query builder instance.
      *
-     * @var \Illuminate\Database\Query\Builder
+     * @var \Illuminate\Database\Eloquent\Builder
      */
     protected $query;
 
@@ -18,8 +19,11 @@ class OrderFilterJob extends Job
      *
      * @var string[]
      */
-    protected allowedFilters = ['valid', 'limit', 'offset', 'field:name',
-        'field:email', 'field:state', 'field:zipcode', 'field:birthday'];     
+    protected $allowedFilters = [
+        'constraint' => ['valid', 'limit', 'offset'],
+        'field_match' => ['name', 'email', 'state', 'zipcode'],
+        'field_partial_match' => ['name', 'email', 'zipcode'],
+    ]     
 
     /**
      * The parsed filter parameters.
@@ -32,53 +36,91 @@ class OrderFilterJob extends Job
      * Create a new job instance.
      *
      * @param array $filterParams
-     * @param \Illuminate\Database\Query\Builder $query
+     * @param \Illuminate\Database\Eloquent\Builder $query
      * @return void
      */
     public function __construct($filterParams, $query = null)
     {
-        foreach ($this->allowedFilters as $filter) {
-            if (starts_with($filter, 'field:')) {
-                $parsedFilter = substr($filter, 6);
-            	if (array_key_exists($parsedFilter, $filterParams)) {
-                    $this->parsedFilterParams['field'][$parsedFilter] =
-                        $filterParams[$parsedFilter];
-                }
-            }
-            else if (array_key_exists($filter, $filterParams)) {
-                $this->parsedFilterParams[$filter] =
-                    $filterParams[$filter];
-            } 
+        foreach ($this->allowedFilters as $filterType => $subFilters) {
+            $this->parseFilters($filterParams, $filterType, $subFilters);
         }
-
         $this->query = $query;
+    }
+
+    /*
+     * Parse the filters of each type.
+     *
+     * @param array $filetrParams
+     * @param string $filterType
+     * @param array $filters
+     * @return void
+     */
+    protected function parseFilters($filterParams, $filterType, $filters) {
+        switch ($filterType) {
+            case 'constraint':
+                foreach ($filters as $filter) {
+                    if (array_key_exists($filter, $filterParams)) {
+                        switch ($filter) {
+                        case 'valid':
+                            $isValidBool = filter_var($filterParams[$filter],
+                                FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+                            if ($isValidBool !== null) {
+                                $this->parsedFilterParams[$filterType][$filter]=
+                                    $isValidBool;
+                            }
+                            break;
+                        case 'limit':
+                        case 'offset':
+                            $parsedInt = filter($filterParams[$filter],
+                                FILTER_VALIDATE_INT);
+                            if ($parsedInt !== false && $parsedInt > 0) {
+                                $this->parsedFilterParams[$filterType][$filter]=
+                                    $parsedInt;
+                            }
+                            break;
+                        } 
+                    }
+                }
+                break;
+            case 'filter_partial_match':
+                if (!array_key_exists('partial_match', $filterParams)) {
+                    break;
+                }
+            case 'filter__match':
+                foreach ($filters as $filter) {
+                    if (array_key_exists($filter, $filterParams)) {
+                        $this->parsedFilterParams[$filterType][$filter] =
+                            $filterParams[$filter];
+                    }
+                }
+                break;
+        }
     }
 
     /**
      * Execute the job.
      *
-     * @return void
+     * @return \Illuminate\Database\Eloquent\Collection
      */
     public function handle()
-    {
-        foreach ($this->parsedFilterParams as $filterType => $filterValue) {
-            if ($filerType == 'field') {
-                foreach ($filterValue as $key => $value) {
-                    if (is_null($this->query)) {
-                        $this->query = Order::field($key, $value);
+    {   
+        $query = $this->query;
+        foreach ($this->parsedFilterParams as $filterType => $filterParams) {
+            switch ($filterType) {
+                case 'constraint':
+                    foreach ($filterParams as $key => $value) {
+                        $query = $query ? $query->$key($value) :
+                            Order::$key($value);
                     }
-                    else {
-                        $this->query = $this->query->field($key, $value)
-                    }
+                    break;
+                case 'filter_match':
+                case 'filter_partial_match':
+                    foreach ($filterParams as $key => $value) {
+                        $query = $query ? $query->$filterType($key, $value) :
+                            Order::$filterType($key, $value);
                 }
             }
-            else if (is_null($this->query)) {
-                $this->query = Order::$filterType($filterValue);
-            }
-            else {
-                $this->query = $this->query->$filterType($filterValue);
-            }
         }
-        return is_null($this->query) ? Order::all() : $this->query->get();
+        return $query ? $query->get() : Order::all();
     }
 }
