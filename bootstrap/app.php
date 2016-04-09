@@ -23,7 +23,7 @@ $app = new Laravel\Lumen\Application(
     realpath(__DIR__.'/../')
 );
 
-// $app->withFacades();
+$app->withFacades();
 
 $app->withEloquent();
 
@@ -104,5 +104,6 @@ $app->group(['namespace' => 'App\Http\Controllers'], function ($app) {
 |
 */
 $app->configure('validation');
+$app->configure('csvorder');
 
 return $app;
