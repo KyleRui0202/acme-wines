@@ -15,7 +15,8 @@ $app->get('/', function () use ($app) {
     return $app->version();
 });
 
-$app->group(['prefix' => 'orders'], function () use ($app) {
+$app->group(['prefix' => 'orders',
+    'namespace' => 'App\Http\Controllers'], function () use ($app) {
     $app->get('/', 'OrdersController@index');
     $app->post('/import', 'OrdersController@import');
     $app->get('/{id}', 'OrdersController@show');
