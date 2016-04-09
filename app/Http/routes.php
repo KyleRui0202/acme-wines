@@ -16,7 +16,7 @@ $app->get('/', function () use ($app) {
 });
 
 $app->group(['prefix' => 'orders'], function () use ($app) {
-    $app->get('/', 'OrderController@index');
-    $app->post('import', 'OrderController@import');
-    $app->get('/{id}', 'OrderController@show');
+    $app->get('/', 'OrdersController@index');
+    $app->post('/import', 'OrdersController@import');
+    $app->get('/{id}', 'OrdersController@show');
 });
