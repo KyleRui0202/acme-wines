@@ -5,7 +5,12 @@ return [
          * Return configuration for order csv.   
          */
 
-        
+        /*
+         * The allowed max file size (bytes).  
+         */
+
+        'max_file_size' => 500000,
+
         /*
          * The delimiter used in the uploaded order csv.  
          */
