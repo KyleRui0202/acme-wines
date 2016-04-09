@@ -104,6 +104,6 @@ $app->group(['namespace' => 'App\Http\Controllers'], function ($app) {
 |
 */
 $app->configure('validation');
-$app->configure('csvorder');
+$app->configure('ordercsv');
 
 return $app;
