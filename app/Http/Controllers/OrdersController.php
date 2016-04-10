@@ -3,19 +3,13 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use App\Jobs\OrderFilterJob;
+use App\Jobs\ImportOrdersFromCsvJob;
+use App\Order;
+use Illuminate\Database\Eloquent\ModelNotFoundException as OrderNotFound;
 
 class OrdersController extends Controller
 {
-    /**
-     * Create a new controller instance.
-     *
-     * @return void
-     */
-    public function __construct()
-    {
-        //
-    }
-
     /**
      * Present all imported orders.
      *
@@ -24,8 +18,13 @@ class OrdersController extends Controller
      */
     public function index(Request $request) {
        $filterParams = $request->query();
-       $filteredOrders = $this->dispatch(new OrderFilterJob($filterParams));
-       return response()->json(['results' => $filteredOrders->toJson()]); 
+       //dd($filterParams);
+       $orderFilterJob = new OrderFilterJob($filterParams);
+       $filteredOrders = $this->dispatch($orderFilterJob);
+       return response()->json([
+           'effect_filters' => $orderFilterJob->getParsedFilterParams(),
+           'num_of_orders' => $filteredOrders->count(),
+           'results' => $filteredOrders->toArray()]); 
     }
 
     /**
@@ -36,23 +35,45 @@ class OrdersController extends Controller
      */
     public function import(Request $request) {
         $this->validate($request, [
-            'orders' => 'bail|required|mimes:csv'
+            'orders' => 'bail|required|mimes:csv,txt'
         ]);
  
         $csvFile = $request->file('orders');
         if ($csvFile->isValid()) {
-            $newFilename = uniqid($csvFile.getClientOriginalName().'_');
-            $csvFile = $csvFile->move(config('ordercsv.path'),
-                $newFilename);
-            $csvFilePathname = $csvFile->getRealPath();
-            $this->dispatch(new ImportOrdersFromCsvJob($csvFilePathname));
-	    return response()->json(['status' => 'uploaded successfuly']);
+            //dd($csvFile->getClientSize());
+            if ($csvFile->getClientSize() <= config('ordercsv.max_file_size')) {
+                $newFilename = uniqid().'_'.$csvFile->getClientOriginalName();
+                $csvFile = $csvFile->move(config('ordercsv.path'),
+                    $newFilename);
+                $csvFilePathname = $csvFile->getRealPath();
+                $this->dispatch(new ImportOrdersFromCsvJob($csvFilePathname));
+	        return response()->json([
+                    'import_status' => 'Uploaded successfuly']);
+            }
+            else {
+                return response()->json([
+                    'import_status' => 'Too large file to upload']);
+            }
         }
         else {
-            return response()->json(['status' => 'uploading fails']);
+            return response()->json([
+                'import_status' => 'Uploading fails']);
         }
     }
 
     /**
+     * Display the specified order.
      * 
+     * @param int $id
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function show($id) {
+        try {
+            $order = Order::findOrFail($id);
+        } catch (OrderNotFound $e) {
+            return response()->json([
+                'not_found' => 'The order of id='.$id.' is not found']);
+        }
+        return $order;
+    }
 }
