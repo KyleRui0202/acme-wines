@@ -3,6 +3,7 @@
 namespace App;
 
 use Illuminate\Database\Eloquent\Model;
+use Validator;
 
 class Order extends Model
 {
@@ -12,7 +13,7 @@ class Order extends Model
      * @var array
      */
     protected $fillable = [
-        'id', 'name', 'email', 'state', 'zipcode', 'birthday'
+        'id', 'name', 'email', 'state', 'zipcode', 'birthday',
     ];
 
     /**
@@ -21,7 +22,7 @@ class Order extends Model
      * @var array
      */
     protected $dates = [
-        'created_at', 'updated_at', 'birthday'
+        'created_at', 'updated_at', 'birthday',
     ]; 
 
     /**
@@ -32,6 +33,15 @@ class Order extends Model
     protected $casts = [
         'valid' => 'boolean',
         'validation_errors' => 'array',
+    ];
+
+    /**
+     * The attributes that should be hidden for arrays.
+     *
+     * @var array
+     */
+    protected $hidden = [
+        'created_at', 'updated_at',
     ]; 
 
     /**
@@ -39,8 +49,9 @@ class Order extends Model
      *
      * @return \Illuminate\Database\Eloquent\Builder
      */
-    public function scopeValid($query) {
-        return $query->where('valid', true);
+    public function scopeValid($query, $boolValue)
+    {
+        return $query->where('valid', $boolValue);
     }
 
     /**
@@ -49,7 +60,8 @@ class Order extends Model
      * @param int $num
      * @return \Illuminate\Database\Eloquent\Builder
      */ 
-    public function scopeLimit($query, $num) {
+    public function scopeLimit($query, $num)
+    {
         return $query->take($num);
     }
 
@@ -59,26 +71,32 @@ class Order extends Model
      * @param int $num
      * @return \Illuminate\Database\Eloquent\Builder
      */ 
-    public function scopeOffset($query, $num) {
+    public function scopeOffset($query, $num)
+    {
         return $query->skip($num);
     }
 
     /**
-     * Scope a query to match a specific field of orders.
+     * Scope a query to case-insensitively match a specific field of orders.
      *
      * @return \Illuminate\Database\Eloquent\Builder
      */ 
-    public function scopeFieldMatch($query, $fieldName, $fieldValue) {
-        return $query->where($fieldName, $fieldValue);
+    public function scopeFieldMatch($query, $fieldName, $fieldValue)
+    {
+        return $query->whereRaw("lower(".$fieldName.
+            ") ='".strtolower($fieldValue)."'");
     }
  
     /**
-     * Scope a query to partially match a specific field of orders.
+     * Scope a query to partially and case-insensitively
+     * match a specific field of orders.
      *
      * @return \Illuminate\Database\Eloquent\Builder
      */
-    public function scopeFieldPartialMatch($query, $fieldName, $fieldValue) {
-        return $query->where($fieldName, 'like', '%'.$fieldValue.'%');
+    public function scopeFieldPartialMatch($query, $fieldName, $fieldValue)
+    {
+        return $query->whereRaw("lower(".$fieldName.
+            ") like '%".strtolower($fieldValue)."%'");
     }
 
     /*
@@ -86,10 +104,11 @@ class Order extends Model
      *
      * @return string
      */
-    public function getBirthdayAttribute() {
-        return $this->birthday->format(config('ordercsv.birthday_format'));
+    public function getBirthdayAttribute()
+    {
+        return date_create($this->attributes['birthday'])
+            ->format(config('ordercsv.birthday_format'));
     }
-
 
     /*
      * Mutator for the column "name"
@@ -97,10 +116,11 @@ class Order extends Model
      * @param string $value
      * @return void
      */
-    public function setNameAttribute($value) {
+    public function setNameAttribute($value)
+    {
         $this->attributes['name'] = $value;
         $isValid = $this->validateRequiredAttribute('name', $value);
-        if ($isValid === false && $this->attributes['valid'] == true) {
+        if ($isValid === false) {
             $this->attributes['valid'] = false;
         }
     }
@@ -111,10 +131,12 @@ class Order extends Model
      * @param string $value
      * @return void
      */
-    public function setEmailAttribute($value) {
-        $this->attributes['email'] = $value;
-        $isValid = $this->validateRequiredAttribute('email', $value);
-        if ($isValid === false && $this->attributes['valid'] == true) {
+    public function setEmailAttribute($value)
+    {
+        $parsedEmail = strtolower($value);
+        $this->attributes['email'] = $parsedEmail;
+        $isValid = $this->validateRequiredAttribute('email', $parsedEmail);
+        if ($isValid === false) {
             $this->attributes['valid'] = false;
         }
     }
@@ -125,10 +147,12 @@ class Order extends Model
      * @param string $value
      * @return void
      */
-    public function setStateAttribute($value) {
-        $this->attributes['state'] = $value;
-        $isValid = $this->validateRequiredAttribute('state', $value);
-        if ($isValid === false && $this->attributes['valid'] == true) {
+    public function setStateAttribute($value)
+    {
+        $parsedState = strtoupper($value);
+        $this->attributes['state'] = $parsedState;
+        $isValid = $this->validateRequiredAttribute('state', $parsedState);
+        if ($isValid === false) {
             $this->attributes['valid'] = false;
         }
     }
@@ -139,18 +163,19 @@ class Order extends Model
      * @param string $value
      * @return void
      */
-    public function setZipcodeAttribute($value) {
+    public function setZipcodeAttribute($value)
+    {
         $parsedZipcode = str_replace('*', '-', $value);
         $this->attributes['zipcode'] = $parsedZipcode;
         $isValid = $this->validateRequiredAttribute('zipcode', $parsedZipcode);
      
-        if ($isValid === false) {
+        if ($isValid === true) {
             $digitSumOfZipcode = array_sum(str_split(
                 str_replace('-', '0', $parsedZipcode)));
             $isValid = $this->validateRequiredAttribute('digit_sum_of_zipcode',
                 $digitSumOfZipcode);
         }
-        if ($isValid === false && $this->attributes['valid'] == true) {
+        if ($isValid === false) {
             $this->attributes['valid'] = false;
         }
 
@@ -162,10 +187,12 @@ class Order extends Model
      * @param string $value
      * @return void
      */
-    public function setBirthdayAttribute($value) {
-        $this->birthday = $value;
-        $isValid = $this->validateRequiredAttribute('birthdaty', $value);
-        if ($isValid === false && $this->attributes['valid'] == true) {
+    public function setBirthdayAttribute($value)
+    {
+        $this->attributes['birthday'] = $this->fromDateTime(
+            date_create($value));
+        $isValid = $this->validateRequiredAttribute('birthday', $value);
+        if ($isValid === false) {
             $this->attributes['valid'] = false;
         }
     }
@@ -177,20 +204,22 @@ class Order extends Model
      * @param mixed $value
      * @return boolean
      */
-    protected function validateRequiredAttribute($attribute, $value) {
-        $vaidationConfig = 'validation.';
+    protected function validateRequiredAttribute($attribute, $value)
+    {
+        $validationConfig = 'validation.';
         $isAttributeValid = true;
         if (empty($value)) {
             $isAttributeValid = false;
             
             // Add a validation error for a required field
-            $this->addValidationError('Required'.$ucfirst($field),
+            $this->addValidationError('Required'.$ucfirst($attribute),
                 'The '.$attribute.' is missing');
         }
         else if ($isAttributeValid === true){
             $validatorData = [];
-            $validatorRules = []
-            foreach (config($vaidationConfig.$attribute) as $ruleName => $rule) {
+            $validatorRules = [];
+            $validationRules = config($validationConfig.$attribute) ?: [];
+            foreach ($validationRules as $ruleName => $rule) {
                 if (is_string($rule['rule_spec'])) {
                     $validatorData[$attribute.'.'.$ruleName] = $value;
                     $validatorRules[$attribute.'.'.$ruleName] = $rule['rule_spec'];
@@ -199,7 +228,7 @@ class Order extends Model
                     if ($attribute === 'email' &&
                         $ruleName === 'domain_restriction_for_state') {
                         if (array_key_exists($this->attributes['state'],
-                            $rule['rule_spe'])) {
+                            $rule['rule_spec'])) {
                             foreach ($rule['rule_spec'][
                                 $this->attributes['state']] as $domain) {
                                 if (ends_with($value, $domain)) {
@@ -221,30 +250,45 @@ class Order extends Model
                 if ($validator->fails()) {
                     $isAttributeValid = false;
 
-                    // Add validation error for a specific attribute
+                    // Attach each validation error detected by
+                    // the "Validator" to the order model
                     foreach($validator->failed() as $ruleIndex => $ruleSpec) {
-                        $this->addValidationError(config($vaidationConfig.
-                            $ruleIndex.'.rule_title'), config($vaidationConfig.
-                            $ruleIndex.'.error_message')),
-                        );
+                        $this->addValidationError(config($validationConfig.
+                            $ruleIndex.'.rule_title'), config($validationConfig.
+                            $ruleIndex.'.error_message'));
                     }
                 }
             }
         }
-        return isAttributeValid;
+        return $isAttributeValid;
     }
 
     /*
-     * Add a validation error.
+     * Attch a validation error to the order model.
      *
      * @param string $rule
      * @param string $message
      * @return void
      */
-    protected function addValidationError($rule, $message) {
-        $existingErrors = $this->attributes['validation_errors'];
-        $existingErrors[] = ['rule' => $rule, 'message' => $message];
-        $this->attributes['validation_errors'] = $existingErrors;
+    protected function addValidationError($rule, $message)
+    {
+        if (!array_key_exists('validation_errors',
+            $this->attributes) && $this->exists) {
+
+            // Reload the existing model to load its existing validation errors 
+            $reloadedOrder = $this->fresh();
+            $this->attributes['validation_errors'] =
+                $reloadedOrder->validation_errors;
+        }
+        
+        $validationErrors = array_key_exists('validation_errors',
+            $this->attributes) && is_array($this->attributes[
+            'validation_errors']) ? $this->fromJson($this->attributes[
+            'validation_errors']) : [];
+        array_push($validationErrors, [
+            'rule' => $rule,
+            'message' => $message]);        
+        $this->attributes['validation_errors'] = $this->asJson($validationErrors);
     }
 
 }

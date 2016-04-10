@@ -26,7 +26,7 @@ return [
             'pattern' => [
                 'rule_title' => 'ValidZipcodePattern',
                 'rule_spec' => 'regex:/^\d{5}([\-]\d{4})?$/',
-                'error_message' => 'Your zipcode is not a 5-digit or 9-digit (e.g., 12345-6789) zipcode',
+                'error_message' => 'Your zipcode is not a valid 5-digit (e.g., 12345) or 9-digit (e.g., 12345-6789) zipcode',
             ],
         ],
 
@@ -65,7 +65,7 @@ return [
                 'rule_spec' => 'email',
                 'error_message' => 'Your email address is not valid',
             ],
-            'domain_restrcition_for_state' => [
+            'domain_restriction_for_state' => [
                 'rule_title' => 'EmailDomainRestrictionForState',
                 'rule_spec' => [
                     'NY' => ['.net'],

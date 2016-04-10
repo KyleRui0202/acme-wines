@@ -4,15 +4,18 @@ namespace App\Jobs;
 
 use App\Order;
 //use Symfony\Component\HttpFoundation\File\UploadedFile;
+use \SplFileInfo;
+use \SplFileObject;
+use Log;
 
 class ImportOrdersFromCsvJob extends Job
 {
     /*
-     * The uploaded CSV file.
+     * The pathname of the temporary CSV file.
      * 
-     * @var SplFileInfo
+     * @var string
      */
-    protected $file;
+    protected $filePathname;
 
     /*
      * Required order fields.
@@ -30,7 +33,7 @@ class ImportOrdersFromCsvJob extends Job
      */
     public function __construct($filePathname)
     {
-        $this->file = new SplFileInfo($filePathname);
+        $this->filePathname = $filePathname;
     }
 
     /**
@@ -40,7 +43,8 @@ class ImportOrdersFromCsvJob extends Job
      */
     public function handle()
     {
-        $fileObj = $this->file->openFile();
+        $file = new SplFileInfo($this->filePathname);
+        $fileObj = $file->openFile();
         $fileObj->setFlags(SplFileObject::DROP_NEW_LINE |
             SplFileObject::READ_AHEAD |
             SplFileObject::SKIP_EMPTY |
@@ -50,23 +54,28 @@ class ImportOrdersFromCsvJob extends Job
 
         $lackFields = array_diff($this->requiredFields, $fields);
         if (count($lackFields) > 0) {
-            Log::error('Fail to import orders: Lack of required fields in uploaded CSV!',
+            Log::error('Fail to import orders: lack of required fields in uploaded CSV!',
                 ['uploaded_file' => $fileObj->getRealPath(),
                 'missing_fields' => $lackFields]);
         }
         else {
             $prevOrder = null;
             while (!$fileObj->eof()) {
-                fieldValues = $fileObj->fgetcsv();
+                $fieldValues = $fileObj->fgetcsv();
                 $record = array_combine($fields, $fieldValues);
-                $curOrder = Orders::create($record);
+                $curOrder = Order::updateOrCreate([
+                    'id' => $record['id']], $record);
                 if (!is_null($prevOrder) && $prevOrder->valid == false) {
                     $this->validateRecordByStateZipcode($prevOrder, $curOrder);
                 }
+                $prevOrder = $curOrder;
 	    }
-            $filePathname = $fileObj->getRealPath();
+
+            // Delete the uploaded csv file after
+            // importing it into the database
             $fileObj = null;
-            unlink($filePathname);
+            $file = null;
+            unlink($this->filePathname);
         }
     }
 
@@ -76,8 +85,8 @@ class ImportOrdersFromCsvJob extends Job
      * @return void
      */
     public function failed() {
-         Log::error('Fail to import orders!',
-                ['uploaded_file' => $this->file->getRealPath()]);
+         Log::error('Fail to import all the orders in the uploaded order csv!',
+                ['uploaded_file' => $this->filePathname]);
     }
 
     /*

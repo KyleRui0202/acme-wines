@@ -22,8 +22,8 @@ class OrderFilterJob extends SyncJob
     protected $allowedFilters = [
         'constraint' => ['valid', 'limit', 'offset'],
         'field_match' => ['name', 'email', 'state', 'zipcode'],
-        'field_partial_match' => ['name', 'email', 'zipcode'],
-    ]     
+        'field_partial_match' => ['name', 'email', 'zipcode']
+    ];     
 
     /**
      * The parsed filter parameters.
@@ -41,10 +41,11 @@ class OrderFilterJob extends SyncJob
      */
     public function __construct($filterParams, $query = null)
     {
+        $this->query = $query;
+        $this->parsedFilterParams = [];
         foreach ($this->allowedFilters as $filterType => $subFilters) {
             $this->parseFilters($filterParams, $filterType, $subFilters);
         }
-        $this->query = $query;
     }
 
     /*
@@ -61,32 +62,40 @@ class OrderFilterJob extends SyncJob
                 foreach ($filters as $filter) {
                     if (array_key_exists($filter, $filterParams)) {
                         switch ($filter) {
-                        case 'valid':
-                            $isValidBool = filter_var($filterParams[$filter],
-                                FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
-                            if ($isValidBool !== null) {
-                                $this->parsedFilterParams[$filterType][$filter]=
-                                    $isValidBool;
-                            }
-                            break;
-                        case 'limit':
-                        case 'offset':
-                            $parsedInt = filter($filterParams[$filter],
-                                FILTER_VALIDATE_INT);
-                            if ($parsedInt !== false && $parsedInt > 0) {
-                                $this->parsedFilterParams[$filterType][$filter]=
-                                    $parsedInt;
-                            }
-                            break;
-                        } 
+                            case 'valid':
+                                // Return TRUE for "1", "true", "on" and "yes";
+                                // return FALSE for "0", "false", "off", "no" and "";
+                                // Otherwise return NULL
+                                $isValidBool = filter_var($filterParams[$filter],
+                                    FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+
+                                if ($isValidBool !== null) {
+                                    $this->parsedFilterParams[$filterType][$filter]=
+                                        $isValidBool;
+                                }
+                                break;
+                            case 'limit':
+                            case 'offset':
+                                $parsedInt = filter_var($filterParams[$filter],
+                                    FILTER_VALIDATE_INT);
+                                if ($parsedInt !== false && $parsedInt > 0) {
+                                    $this->parsedFilterParams[$filterType][$filter]=
+                                        $parsedInt;
+                                }
+                                break;
+                        }
                     }
                 }
                 break;
-            case 'filter_partial_match':
-                if (!array_key_exists('partial_match', $filterParams)) {
-                    break;
+            case 'field_partial_match':
+                foreach ($filters as $filter) {
+                    if (array_key_exists($filter.'_partial_match', $filterParams)) {
+                        $this->parsedFilterParams[$filterType][$filter] =
+                            $filterParams[$filter.'_partial_match'];
+                    }
                 }
-            case 'filter__match':
+                break;
+            case 'field_match':
                 foreach ($filters as $filter) {
                     if (array_key_exists($filter, $filterParams)) {
                         $this->parsedFilterParams[$filterType][$filter] =
@@ -105,6 +114,7 @@ class OrderFilterJob extends SyncJob
     public function handle()
     {   
         $query = $this->query;
+        
         foreach ($this->parsedFilterParams as $filterType => $filterParams) {
             switch ($filterType) {
                 case 'constraint':
@@ -113,14 +123,25 @@ class OrderFilterJob extends SyncJob
                             Order::$key($value);
                     }
                     break;
-                case 'filter_match':
-                case 'filter_partial_match':
+                case 'field_match':
+                case 'field_partial_match':
+                    $scopeFunc = camel_case($filterType);
                     foreach ($filterParams as $key => $value) {
-                        $query = $query ? $query->$filterType($key, $value) :
-                            Order::$filterType($key, $value);
+                        $query = $query ? $query->$scopeFunc($key, $value) :
+                            Order::$scopeFunc($key, $value);
                 }
             }
         }
         return $query ? $query->get() : Order::all();
     }
+
+    /**
+     * Get the parsed filter parameters.
+     *
+     * @return array
+     */
+    public function getParsedFilterParams () {
+        return $this->parsedFilterParams;
+    }
+
 }
