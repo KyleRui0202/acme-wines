@@ -46,7 +46,7 @@ There are functional tests based on [PHPUnit](https://phpunit.de/) for all the t
 Actually I haven't completed the testing for (partial) field match for the `/orders` endpoint, and some other features (e.g., processing the order importing work in a queue) are also not be covered in the test. I probably will keep working on this.
 
 ### Acknowledgement
-Chris, thank you for your patience! And I do apologze again for the delayed submission of this code challenge. Actually I did try my best to complete it not just as a test but also make it something in which a real-world project may be built upon in the future. So I spent quite some time on testing and debugging it as well as introduced additional features. 
+Chris, thank you for your patience! And I do apologze for the delayed submission of this code challenge. Actually I did try my best to complete it not just as a test but also make it something in which a real-world project may be built upon in the future. So I spent quite some time on testing and debugging it as well as introduced additional features. I'm sorry for any inconvinience. 
   
 
 ### License
