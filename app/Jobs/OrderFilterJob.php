@@ -122,6 +122,13 @@ class OrderFilterJob extends SyncJob
                         $query = $query ? $query->$key($value) :
                             Order::$key($value);
                     }
+
+                    // If there is the "offset" filter but no "limit" filter,
+                    // we will  create a one behind to include all the rest records
+                    if (array_key_exists('offset', $filterParams) &&
+                        !array_key_exists('limit', $filterParams)) {
+                        $query = $query->take(Order::count());
+                    }
                     break;
                 case 'field_match':
                 case 'field_partial_match':

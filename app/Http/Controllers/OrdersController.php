@@ -6,7 +6,7 @@ use Illuminate\Http\Request;
 use App\Jobs\OrderFilterJob;
 use App\Jobs\ImportOrdersFromCsvJob;
 use App\Order;
-use Illuminate\Database\Eloquent\ModelNotFoundException as OrderNotFound;
+use Illuminate\Database\Eloquent\ModelNotFoundException as OrderNotFoundException;
 
 class OrdersController extends Controller
 {
@@ -16,9 +16,9 @@ class OrdersController extends Controller
      * @param Request $request
      * @return \Illuminate\Http\JsonResponse
      */
-    public function index(Request $request) {
+    public function index(Request $request)
+    {
        $filterParams = $request->query();
-       //dd($filterParams);
        $orderFilterJob = new OrderFilterJob($filterParams);
        $filteredOrders = $this->dispatch($orderFilterJob);
        return response()->json([
@@ -33,11 +33,13 @@ class OrdersController extends Controller
      * @param Request $request
      * @return \Illuminate\Http\JsonResponse
      */
-    public function import(Request $request) {
+    public function import(Request $request)
+    {
+        //dd($request->file('orders')->getClientMimeType());
         $this->validate($request, [
             'orders' => 'bail|required|mimes:csv,txt'
         ]);
- 
+
         $csvFile = $request->file('orders');
         if ($csvFile->isValid()) {
             //dd($csvFile->getClientSize());
@@ -48,16 +50,17 @@ class OrdersController extends Controller
                 $csvFilePathname = $csvFile->getRealPath();
                 $this->dispatch(new ImportOrdersFromCsvJob($csvFilePathname));
 	        return response()->json([
-                    'import_status' => 'Uploaded successfuly']);
+                    'import_status' => 'File uploaded successfuly']);
             }
             else {
                 return response()->json([
-                    'import_status' => 'Too large file to upload']);
+                    'import_status' => 'Too large file (>'.
+                        config('ordercsv.max_file_size').') to be uploaded']);
             }
         }
         else {
             return response()->json([
-                'import_status' => 'Uploading fails']);
+                'import_status' => 'File uploading fails']);
         }
     }
 
@@ -67,12 +70,13 @@ class OrdersController extends Controller
      * @param int $id
      * @return \Illuminate\Http\JsonResponse
      */
-    public function show($id) {
+    public function show($id)
+    {
         try {
             $order = Order::findOrFail($id);
-        } catch (OrderNotFound $e) {
+        } catch (OrderNotFoundException $e) {
             return response()->json([
-                'not_found' => 'The order of id='.$id.' is not found']);
+                'no_result' => 'The order of id='.$id.' is not found']);
         }
         return $order;
     }

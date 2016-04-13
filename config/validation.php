@@ -33,7 +33,7 @@ return [
         'digit_sum_of_zipcode' => [
             'range_limit' => [
                 'rule_title' => 'ZipCodeSum',
-                'rule_spec' => 'max:20',
+                'rule_spec' => 'integer|max:20',
                 'error_message' => 'Your zipcode sum is too large',
             ],
         ],
@@ -45,8 +45,8 @@ return [
         'birthday' => [
             'type' => [
                 'rule_title' => 'ValidBirthday',
-                'rule_spec' => 'date',
-                'error_message' =>'Your birthday is a not valid date format',
+                'rule_spec' => 'not_in:0000-00-00',
+                'error_message' =>'Your birthday is a not valid date format required as "M j, Y", e.g, Jan 1, 1990',
             ],
             'max_birth_date' => [
                 'rule_title' => 'MinimumAgeForOrdering',

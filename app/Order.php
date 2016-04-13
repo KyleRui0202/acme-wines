@@ -7,6 +7,13 @@ use Validator;
 
 class Order extends Model
 {
+    /*
+     * The primary key is not auto-incrementing  
+     *
+     * @var boolean
+     */
+    public $incrementing = false;
+
     /**
      * The attributes that are mass assignable.
      *
@@ -31,6 +38,7 @@ class Order extends Model
      * @var array
      */
     protected $casts = [
+        'id' => 'integer',
         'valid' => 'boolean',
         'validation_errors' => 'array',
     ];
@@ -106,7 +114,7 @@ class Order extends Model
      */
     public function getBirthdayAttribute()
     {
-        return date_create($this->attributes['birthday'])
+        return $this->asDateTime($this->attributes['birthday'])
             ->format(config('ordercsv.birthday_format'));
     }
 
@@ -118,8 +126,9 @@ class Order extends Model
      */
     public function setNameAttribute($value)
     {
-        $this->attributes['name'] = $value;
-        $isValid = $this->validateRequiredAttribute('name', $value);
+        $parsedName = trim($value);
+        $this->attributes['name'] = $parsedName;
+        $isValid = $this->validateRequiredAttribute('name', $parsedName);
         if ($isValid === false) {
             $this->attributes['valid'] = false;
         }
@@ -133,7 +142,7 @@ class Order extends Model
      */
     public function setEmailAttribute($value)
     {
-        $parsedEmail = strtolower($value);
+        $parsedEmail = strtolower(trim($value));
         $this->attributes['email'] = $parsedEmail;
         $isValid = $this->validateRequiredAttribute('email', $parsedEmail);
         if ($isValid === false) {
@@ -149,7 +158,7 @@ class Order extends Model
      */
     public function setStateAttribute($value)
     {
-        $parsedState = strtoupper($value);
+        $parsedState = strtoupper(trim($value));
         $this->attributes['state'] = $parsedState;
         $isValid = $this->validateRequiredAttribute('state', $parsedState);
         if ($isValid === false) {
@@ -165,7 +174,7 @@ class Order extends Model
      */
     public function setZipcodeAttribute($value)
     {
-        $parsedZipcode = str_replace('*', '-', $value);
+        $parsedZipcode = str_replace('*', '-', trim($value));
         $this->attributes['zipcode'] = $parsedZipcode;
         $isValid = $this->validateRequiredAttribute('zipcode', $parsedZipcode);
      
@@ -189,9 +198,17 @@ class Order extends Model
      */
     public function setBirthdayAttribute($value)
     {
-        $this->attributes['birthday'] = $this->fromDateTime(
-            date_create($value));
-        $isValid = $this->validateRequiredAttribute('birthday', $value);
+        $parsedBirthday = trim($value);
+        if (!empty($parsedBirthday)) {
+            $parsedBirthday = date_create_from_format(
+                config('ordercsv.birthday_format'), $parsedBirthday);
+            $parsedBirthday = $parsedBirthday ?
+                $parsedBirthday->format('Y-m-d') : '0000-00-00';
+        }
+        $this->attributes['birthday'] = $parsedBirthday;
+   
+        $isValid = $this->validateRequiredAttribute('birthday',
+            $parsedBirthday);
         if ($isValid === false) {
             $this->attributes['valid'] = false;
         }
@@ -199,6 +216,8 @@ class Order extends Model
 
     /*
      * Validate a specific required field of orders.
+     * Add and update a specific validation error if find any.
+     * Otherwise we may need to remove an error (which is not implemented here)
      *
      * @param string $field
      * @param mixed $value
@@ -212,7 +231,7 @@ class Order extends Model
             $isAttributeValid = false;
             
             // Add a validation error for a required field
-            $this->addValidationError('Required'.$ucfirst($attribute),
+            $this->addOrUpdateValidationError('Required'.ucfirst($attribute),
                 'The '.$attribute.' is missing');
         }
         else if ($isAttributeValid === true){
@@ -224,24 +243,22 @@ class Order extends Model
                     $validatorData[$attribute.'.'.$ruleName] = $value;
                     $validatorRules[$attribute.'.'.$ruleName] = $rule['rule_spec'];
                 }
-                else {
-                    if ($attribute === 'email' &&
-                        $ruleName === 'domain_restriction_for_state') {
-                        if (array_key_exists($this->attributes['state'],
-                            $rule['rule_spec'])) {
-                            foreach ($rule['rule_spec'][
-                                $this->attributes['state']] as $domain) {
-                                if (ends_with($value, $domain)) {
-                                     $isAttributeValid = false;
-                                     
-                                     // Add a validation error for email domain
-                                     // restriction for a specific state
-                                     $this->addValidationError($rule['rule_title'],
-                                         "The '".$domain."' email is not allowed in ".
-                                         $this->attributes['state']);
-                                }
-                            }
-                        } 
+                else if ($ruleName === 'domain_restriction_for_state') {
+                    if ($attribute === 'email') {
+                        $curState = $this->getAttributeForSameOrder('state');
+                        if (!is_null($curState)) {
+                            $isAttributeValid = $this->
+                                detectEmailDomainRestrictionForState(
+                                    $value, $curState, $rule);
+                        }
+                    }
+                    else if ($attribute === 'state') {
+                        $curEmail = $this->getAttributeForSameOrder('email');
+                        if (!is_null($curEmail)) {
+                            $isAttributeValid = $this->
+                                detectEmailDomainRestrictionForState(
+                                    $curEmail, $value, $rule);
+                        }
                     }
                 }
             }
@@ -253,7 +270,7 @@ class Order extends Model
                     // Attach each validation error detected by
                     // the "Validator" to the order model
                     foreach($validator->failed() as $ruleIndex => $ruleSpec) {
-                        $this->addValidationError(config($validationConfig.
+                        $this->addOrUpdateValidationError(config($validationConfig.
                             $ruleIndex.'.rule_title'), config($validationConfig.
                             $ruleIndex.'.error_message'));
                     }
@@ -270,25 +287,73 @@ class Order extends Model
      * @param string $message
      * @return void
      */
-    protected function addValidationError($rule, $message)
+    protected function addOrUpdateValidationError($ruleTitle, $message)
     {
-        if (!array_key_exists('validation_errors',
-            $this->attributes) && $this->exists) {
-
-            // Reload the existing model to load its existing validation errors 
-            $reloadedOrder = $this->fresh();
-            $this->attributes['validation_errors'] =
-                $reloadedOrder->validation_errors;
+        $validationErrors = $this->getAttributeForSameOrder(
+            'validation_errors') ?: [];
+        if (count($validationErrors) > 0) {
+            //dd([$validationErrors, $ruleTitle]);
         }
-        
-        $validationErrors = array_key_exists('validation_errors',
-            $this->attributes) && is_array($this->attributes[
-            'validation_errors']) ? $this->fromJson($this->attributes[
-            'validation_errors']) : [];
+        foreach ($validationErrors as $validationError) {
+            if ($validationError['rule'] === $ruleTitle) {
+                $validationError['message'] = $message;
+                return;
+            }
+        }
         array_push($validationErrors, [
-            'rule' => $rule,
-            'message' => $message]);        
-        $this->attributes['validation_errors'] = $this->asJson($validationErrors);
+            'rule' => $ruleTitle,
+            'message' => $message]);
+        $this->validation_errors = $validationErrors;
+    }
+
+    /*
+     * Get the value of an attribute corresponsind to
+     * the same order record of the model instance
+     *
+     * @param string $attribute
+     * @return mixed|null
+     */
+    protected function getAttributeForSameOrder($attribute)
+    {
+        if (isset($this->$attribute)) {
+            return $this->$attribute;
+        }
+        else if ($this->exists) {
+
+            // Reload the existing model to load
+            // its existing validation errors 
+            $reloadedOrder = $this->fresh();
+            return $reloadedOrder->$attribute;
+        }
+        return null;
+    }
+
+    /*
+     * Check if a email value with a state value break
+     * "email_domain_restriction_for_state_rule"
+     *
+     * @param string $emailValue
+     * @param string $stateValue
+     * @param string $rule
+     * @return boolean
+     */
+    protected function detectEmailDomainRestrictionForState($emailValue, $stateValue, $rule)
+    {
+        $isValid = true;
+        if (array_key_exists($stateValue, $rule['rule_spec'])) {
+            foreach ($rule['rule_spec'][$stateValue] as $domain) {
+                if (ends_with($emailValue, $domain)) {
+                    $isValid = false;
+
+                    // Add a validation error for email domain
+                    // restriction for a specific state
+                    $this->addOrUpdateValidationError($rule['rule_title'],
+                        "The '".$domain."' email is not allowed in ".$stateValue);
+                    break;
+                }
+            }
+        }
+        return $isValid;
     }
 
 }

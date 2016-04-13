@@ -54,19 +54,31 @@ class ImportOrdersFromCsvJob extends Job
 
         $lackFields = array_diff($this->requiredFields, $fields);
         if (count($lackFields) > 0) {
-            Log::error('Fail to import orders: lack of required fields in uploaded CSV!',
-                ['uploaded_file' => $fileObj->getRealPath(),
-                'missing_fields' => $lackFields]);
+            Log::error('Fail to import orders: lack of required fields in the uploaded csv!', [
+                'uploaded_file' => $fileObj->getRealPath(),
+                'missing_fields' => $lackFields,
+            ]);
         }
         else {
             $prevOrder = null;
             while (!$fileObj->eof()) {
+                
+                // Read each order record and save it into the database
                 $fieldValues = $fileObj->fgetcsv();
+                if (!is_array($fieldValues) || count($fields) !==
+                    count($fieldValues)) {
+                    Log::warning('Fail to import an order!', [
+                        'order_fields' => $fields,
+                        'field_values' => $fieldValues,
+                    ]);
+                    continue;
+                }
+
                 $record = array_combine($fields, $fieldValues);
                 $curOrder = Order::updateOrCreate([
                     'id' => $record['id']], $record);
                 if (!is_null($prevOrder) && $prevOrder->valid == false) {
-                    $this->validateRecordByStateZipcode($prevOrder, $curOrder);
+                    $this->crossValidateRecordByStateZipcode($prevOrder, $curOrder);
                 }
                 $prevOrder = $curOrder;
 	    }
@@ -84,7 +96,8 @@ class ImportOrdersFromCsvJob extends Job
      *
      * @return void
      */
-    public function failed() {
+    public function failed()
+    {
          Log::error('Fail to import all the orders in the uploaded order csv!',
                 ['uploaded_file' => $this->filePathname]);
     }
@@ -97,7 +110,8 @@ class ImportOrdersFromCsvJob extends Job
      * @param Order $referredOrder
      * @return void
      */
-    protected function validateRecordByStateZipcode(Order $targetOrder, Order $referredOrder) {
+    protected function crossValidateRecordByStateZipcode(Order $targetOrder, Order $referredOrder)
+    {
         if (!empty($targetOrder->state) && !empty($targetOrder->zipcode) &&
             $targetOrder->state === $referredOrder->state &&
             $targetOrder->zipcode === $referredOrder->zipcode) {

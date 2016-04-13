@@ -27,7 +27,7 @@ return [
          * The date format of birthday in output order information.   
         */
 
-        'birthday_format' => 'F j, Y',
+        'birthday_format' => 'M j, Y',
 
 ];
 
