@@ -17,3 +17,14 @@ $factory->define(App\User::class, function ($faker) {
         'email' => $faker->email,
     ];
 });
+
+$factory->define(App\Order::class, function ($faker) {
+    //dd($faker->date(config('ordercsv.birthday_format')));
+    return [
+        'name' => $faker->name,
+        'email' => $faker->email,
+        'state' => $faker->stateAbbr,
+        'zipcode' => $faker->postcode,
+        'birthday' => $faker->date(config('ordercsv.birthday_format')),
+    ];
+});

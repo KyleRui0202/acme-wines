@@ -11,6 +11,7 @@ class ExampleTest extends TestCase
      */
     public function testExample()
     {
+        dd($_ENV);
         $this->get('/');
 
         $this->assertEquals(
