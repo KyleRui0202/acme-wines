@@ -243,22 +243,24 @@ class Order extends Model
                     $validatorData[$attribute.'.'.$ruleName] = $value;
                     $validatorRules[$attribute.'.'.$ruleName] = $rule['rule_spec'];
                 }
-                else if ($ruleName === 'domain_restriction_for_state') {
-                    if ($attribute === 'email') {
-                        $curState = $this->getAttributeForSameOrder('state');
-                        if (!is_null($curState)) {
-                            $isAttributeValid = $this->
-                                detectEmailDomainRestrictionForState(
-                                    $value, $curState, $rule);
-                        }
+                if ($ruleName === 'domain_restriction_for_stat') {
+                    $curState = $this->getAttributeForSameOrder('state');
+                    //dd($curState);
+                    if (!is_null($curState)) {
+                        $isAttributeValid = $this->
+                            detectEmailDomainRestrictionForState(
+                                $value, $curState, $rule);
                     }
-                    else if ($attribute === 'state') {
-                        $curEmail = $this->getAttributeForSameOrder('email');
-                        if (!is_null($curEmail)) {
-                            $isAttributeValid = $this->
-                                detectEmailDomainRestrictionForState(
-                                    $curEmail, $value, $rule);
-                        }
+                }
+                else if ($attribute === 'state' && !empty(config(
+                    $validationConfig.'email.domain_restriction_for_state'))) {
+                    $curEmail = $this->getAttributeForSameOrder('email');
+                    //dd($curEmail);
+                    if (!is_null($curEmail)) {
+                        $isAttributeValid = $this->
+                            detectEmailDomainRestrictionForState(
+                                $curEmail, $value, config($validationConfig.
+                                'email.domain_restriction_for_state'));
                     }
                 }
             }
