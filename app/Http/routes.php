@@ -18,7 +18,7 @@ $app->get('/', function () use ($app) {
 $app->group(['prefix' => 'orders',
     'namespace' => 'App\Http\Controllers'], function () use ($app) {
     $app->get('/', [
-        'as' => 'orders_submit',
+        'as' => 'orders_index',
         'uses' => 'OrdersController@index'
     ]);
     $app->post('/import', 'OrdersController@import');

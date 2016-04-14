@@ -53,7 +53,7 @@ class Order extends Model
     ]; 
 
     /**
-     * Scope a query to only inlcude valid orders.
+     * Scope a query to only inlcude valid or invalid orders.
      *
      * @return \Illuminate\Database\Eloquent\Builder
      */
@@ -96,8 +96,8 @@ class Order extends Model
     }
  
     /**
-     * Scope a query to partially and case-insensitively
-     * match a specific field of orders.
+     * Scope a query to match a specific field of orders
+     * partially and case-insensitively
      *
      * @return \Illuminate\Database\Eloquent\Builder
      */
@@ -127,8 +127,11 @@ class Order extends Model
     public function setNameAttribute($value)
     {
         $parsedName = trim($value);
+
         $this->attributes['name'] = $parsedName;
+
         $isValid = $this->validateRequiredAttribute('name', $parsedName);
+
         if ($isValid === false) {
             $this->attributes['valid'] = false;
         }
@@ -143,8 +146,11 @@ class Order extends Model
     public function setEmailAttribute($value)
     {
         $parsedEmail = strtolower(trim($value));
+
         $this->attributes['email'] = $parsedEmail;
+
         $isValid = $this->validateRequiredAttribute('email', $parsedEmail);
+
         if ($isValid === false) {
             $this->attributes['valid'] = false;
         }
@@ -159,8 +165,11 @@ class Order extends Model
     public function setStateAttribute($value)
     {
         $parsedState = strtoupper(trim($value));
+
         $this->attributes['state'] = $parsedState;
+
         $isValid = $this->validateRequiredAttribute('state', $parsedState);
+
         if ($isValid === false) {
             $this->attributes['valid'] = false;
         }
@@ -176,6 +185,7 @@ class Order extends Model
     {
         $parsedZipcode = str_replace('*', '-', trim($value));
         $this->attributes['zipcode'] = $parsedZipcode;
+
         $isValid = $this->validateRequiredAttribute('zipcode', $parsedZipcode);
      
         if ($isValid === true) {
@@ -184,6 +194,7 @@ class Order extends Model
             $isValid = $this->validateRequiredAttribute('digit_sum_of_zipcode',
                 $digitSumOfZipcode);
         }
+
         if ($isValid === false) {
             $this->attributes['valid'] = false;
         }
@@ -199,16 +210,19 @@ class Order extends Model
     public function setBirthdayAttribute($value)
     {
         $parsedBirthday = trim($value);
+
         if (!empty($parsedBirthday)) {
             $parsedBirthday = date_create_from_format(
                 config('ordercsv.birthday_format'), $parsedBirthday);
             $parsedBirthday = $parsedBirthday ?
                 $parsedBirthday->format('Y-m-d') : '0000-00-00';
         }
+
         $this->attributes['birthday'] = $parsedBirthday;
    
         $isValid = $this->validateRequiredAttribute('birthday',
             $parsedBirthday);
+
         if ($isValid === false) {
             $this->attributes['valid'] = false;
         }
@@ -217,7 +231,7 @@ class Order extends Model
     /*
      * Validate a specific required field of orders.
      * Add and update a specific validation error if find any.
-     * Otherwise we may need to remove an error (which is not implemented here)
+     * Otherwise we may need to remove an error (which is not implemented yet)
      *
      * @param string $field
      * @param mixed $value
@@ -227,6 +241,7 @@ class Order extends Model
     {
         $validationConfig = 'validation.';
         $isAttributeValid = true;
+
         if (empty($value)) {
             $isAttributeValid = false;
             
@@ -238,11 +253,13 @@ class Order extends Model
             $validatorData = [];
             $validatorRules = [];
             $validationRules = config($validationConfig.$attribute) ?: [];
+
             foreach ($validationRules as $ruleName => $rule) {
                 if (is_string($rule['rule_spec'])) {
                     $validatorData[$attribute.'.'.$ruleName] = $value;
                     $validatorRules[$attribute.'.'.$ruleName] = $rule['rule_spec'];
                 }
+
                 if ($ruleName === 'domain_restriction_for_stat') {
                     $curState = $this->getAttributeForSameOrder('state');
                     //dd($curState);
@@ -264,8 +281,10 @@ class Order extends Model
                     }
                 }
             }
+
             if (count($validatorData) > 0) {
                 $validator = Validator::make($validatorData, $validatorRules);
+
                 if ($validator->fails()) {
                     $isAttributeValid = false;
 
@@ -279,6 +298,7 @@ class Order extends Model
                 }
             }
         }
+
         return $isAttributeValid;
     }
 
@@ -293,18 +313,18 @@ class Order extends Model
     {
         $validationErrors = $this->getAttributeForSameOrder(
             'validation_errors') ?: [];
-        if (count($validationErrors) > 0) {
-            //dd([$validationErrors, $ruleTitle]);
-        }
+
         foreach ($validationErrors as $validationError) {
             if ($validationError['rule'] === $ruleTitle) {
                 $validationError['message'] = $message;
                 return;
             }
         }
+
         array_push($validationErrors, [
             'rule' => $ruleTitle,
             'message' => $message]);
+
         $this->validation_errors = $validationErrors;
     }
 
@@ -325,8 +345,10 @@ class Order extends Model
             // Reload the existing model to load
             // its existing validation errors 
             $reloadedOrder = $this->fresh();
+
             return $reloadedOrder->$attribute;
         }
+
         return null;
     }
 
@@ -342,6 +364,7 @@ class Order extends Model
     protected function detectEmailDomainRestrictionForState($emailValue, $stateValue, $rule)
     {
         $isValid = true;
+
         if (array_key_exists($stateValue, $rule['rule_spec'])) {
             foreach ($rule['rule_spec'][$stateValue] as $domain) {
                 if (ends_with($emailValue, $domain)) {
@@ -355,6 +378,7 @@ class Order extends Model
                 }
             }
         }
+
         return $isValid;
     }
 
