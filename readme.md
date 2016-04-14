@@ -27,7 +27,7 @@ Any validation failures of each order will be stored in the database.
 
 Within the returned JSON results, additional meta data including the effect filters and total number of redaults are also contained. 
 
-### /orders/id
+### /orders/{id}
 This is the endpoint that returns only one order record that has the order "id" if it exists, otherwise return a message showing no order of this "id".
 
 ## Installation
@@ -40,19 +40,19 @@ This application is built based on Lumen (a PHP micro-framework), which origins 
 The last line is to build the database schema for this application. 
 
 ## Configuration
-All the basic environment configuration options should be stored in `.env` file. If this file does not exist, you may find an `.env.example ` file. Then you copy and past it as `.env` and edit the configuration options including the debugging, logging, databases, queue driver, etc.
+All the basic environment configuration options should be stored in `.env` file. If this file does not exist, you may find an `.env.example ` file. Then you can copy and paste it as `.env` and edit the configuration options including the debugging, logging, databases, queue driver, etc.
 
-Moreover, there are also configuration files specified for this application in the `config` folder. One is `ordercsv` which contains basic configuration about the order CSV to be uploaded, and the other one is `validation`, in which you  may configure the validators to apply for order importing.
+Moreover, there are also configuration files specified for this application in the `config/` folder. One is `ordercsv` which contains basic configuration about the order CSV to be uploaded, and the other one is `validation`, in which you may configure the validators to apply to order importing.
 
 ## Usage
-You may use `curl` command to connect to and use this application:
+You may use `curl` command to connect to and use this application from the console, for example,
 
 * **/orders/import**: `curl -i -F orders=@[theordercsvfile] [hostname]/orders/import`
 * **/orders**: `curl -i [hostname]/orders?valid=1&limit=30&state=ny$name_partial_match=Dav`
-* **/orders/{id}** `curl -i [hostname]/orders/3`
+* **/orders/{id}**: `curl -i [hostname]/orders/3`
 
 ## Application Structure
-This application is working based on [Lumen installation](http://lumen.laravel.com/). The core code are located in the `app/` folder, in which I implemented the routing (`app/Http/route.php`), controller (`app/Http/Controllers/OrdersController`) and model (`app/Order.php`).
+This application is working based on [Lumen installation](http://lumen.laravel.com/). The core code are located in the `app/` folder, in which I implemented the routing (`app/Http/routes.php`), controller (`app/Http/Controllers/OrdersController.php`) and model (`app/Order.php`).
 
 I also wrap two independent tasks (result filtering of `orders` and order importing) into `jobs`, and dispatch them from the controller.
 
