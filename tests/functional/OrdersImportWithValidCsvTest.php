@@ -7,7 +7,8 @@ use \SplFileObject;
 
 class OrdersImportWithValidCsvTest extends TestCase
 {
-
+    // Wrap every test case in a database transaction
+    // to reset the database after each test
     use DatabaseTransactions;
 
     /*
@@ -33,6 +34,7 @@ class OrdersImportWithValidCsvTest extends TestCase
         
         $csvPathname = $this->csvDirectory.$csvFilename;
         $parsedOrders = $this->readOrderCsvFile($csvPathname);
+
         foreach ($parsedOrders as $parsedOrder) {
             //dd(App\Order::all());
             $parsedOrders['valid'] = true;
@@ -68,6 +70,7 @@ class OrdersImportWithValidCsvTest extends TestCase
         
         $csvPathname = $this->csvDirectory.$csvFilename;
         $parsedOrders = $this->readOrderCsvFile($csvPathname);
+
         foreach ($parsedOrders as $parsedOrder) {
             unset($parsedOrder[$emptyField]);
             $parsedOrder['valid'] = false;
@@ -291,7 +294,8 @@ class OrdersImportWithValidCsvTest extends TestCase
      * the order followed by another order which has
      * the same state and zipcode
      */
-    public function orderCsvWithOrderFollowedByOrderWithSameStateAndZipcodeProvider() {
+    public function orderCsvWithOrderFollowedByOrderWithSameStateAndZipcodeProvider()
+    {
         return [
             'orders_wth_same_state_and_zipcode' => [
                 'orders_with_same_state_zipcode.csv'
@@ -306,7 +310,8 @@ class OrdersImportWithValidCsvTest extends TestCase
      * @param string $csvFilename
      * @return void
      */
-    protected function importACopiedOrderCsv($csvFilename) {
+    protected function importACopiedOrderCsv($csvFilename)
+    {
         $csvPathname = __DIR__.'/'.$this->csvDirectory.$csvFilename;
         $copiedCsvPathname = __DIR__.'/'.$this->csvDirectory.'copied_'.$csvFilename;
         copy($csvPathname, $copiedCsvPathname);
@@ -324,7 +329,8 @@ class OrdersImportWithValidCsvTest extends TestCase
      * @param string $pathname
      * @return array
      */
-    protected function readOrderCsvFile($pathname) {
+    protected function readOrderCsvFile($pathname)
+    {
         $file = new SplFileInfo(__DIR__.'/'.$pathname);
         $fileObj = $file->openFile();
         $fileObj->setFlags(SplFileObject::DROP_NEW_LINE |

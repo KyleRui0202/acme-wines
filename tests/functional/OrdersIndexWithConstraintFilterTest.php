@@ -4,6 +4,8 @@ use Laravel\Lumen\Testing\DatabaseTransactions;
 
 class OrdersIndexWithConstraintFilterTest extends TestCase
 {
+    // Wrap every test case in a database transaction
+    // to reset the database after each test
     use DatabaseTransactions;
 
     /**
@@ -19,11 +21,14 @@ class OrdersIndexWithConstraintFilterTest extends TestCase
         $validResults = [];
         $invalidResults = [];
         $idOffset = 10000;
+
         for ($i = 0; $i < $numOfOrders; $i++) {
             $isValid = ($i < $numOfInvalidOrders) ? false : true;
+
             $order = factory('App\Order')->create([
                 'id' => $i + $idOffset,
                 'valid' => $isValid]);
+
             if ($isValid === true) {
                 $validResults[] = $order->fresh()->toArray();
             }
@@ -34,6 +39,7 @@ class OrdersIndexWithConstraintFilterTest extends TestCase
         
         // Check "valid=1, true, on and yes"
         $termsOfValid = [1, 'true', 'on', 'yes'];
+
         foreach ($termsOfValid as $term) {
             $this->get('/orders?valid='.$term)
                 ->seeJson(['constraint' => ['valid' => true]])
@@ -43,6 +49,7 @@ class OrdersIndexWithConstraintFilterTest extends TestCase
 
         // Check "valid=0, false, off no and ''"
         $termsOfInvalid = [0, 'false', 'off', 'no', ''];
+
         foreach ($termsOfInvalid as $term) {
             $this->get('/orders?valid='.$term)
                 ->seeJson(['constraint' => ['valid' => false]])
@@ -53,10 +60,11 @@ class OrdersIndexWithConstraintFilterTest extends TestCase
     }
 
     /*
-     * Provide the numbers of total orders and
-     * invalid orders among for testing.
+     * Provide the number of total orders and
+     * number of invalid orders among for testing.
      */
-    public function numOfTotalAndInvalidOrdersProvider() {
+    public function numOfTotalAndInvalidOrdersProvider()
+    {
         return [
             'all_orders_are_invalid' => [3, 3],
             'all_orders_are_valid' => [5, 0],
@@ -79,13 +87,13 @@ class OrdersIndexWithConstraintFilterTest extends TestCase
         $results = [];
         $idOffset = 10000;
         $parsedLimit = filter_var($limitValue, FILTER_VALIDATE_INT);
+
         for ($i = 0; $i < $numOfOrders; $i++) {
             $order = factory('App\Order')->create([
                 'id' => $i + $idOffset]);
-            if ($parsedLimit === false || $parsedLimit <= 0) {
-                $results[] = $order->fresh()->toArray();
-            }
-            else if ($i < $parsedLimit) {
+
+            if ($parsedLimit === false || $parsedLimit <= 0 ||
+                $i < $parsedLimit) {
                 $results[] = $order->fresh()->toArray();
             }
         }
@@ -107,14 +115,15 @@ class OrdersIndexWithConstraintFilterTest extends TestCase
      * Provide the numbers of total orders and
      * the value of "limit" filter among for testing.
      */
-    public function numOfTotalOrdersAndLimitFilterValueProvider() {
+    public function numOfTotalOrdersAndLimitFilterValueProvider()
+    {
         return [
             'string_value' => [6, 'asd'],
             'negative_value' => [4, '-3'],
             'zero_value' => [3, '0'],
-            'normal_numeric_value' => [5, '3'],
-            'same_as_num_of_orders' => [7, '7'],
-            'greater_than_num_of_orders' => [10, '12'],
+            'positive_integer_value_smaller_than_num_of_orders' => [5, '3'],
+            'same_value_as_num_of_orders' => [7, '7'],
+            'greater_value_than_num_of_orders' => [10, '12'],
         ];
     }
 
@@ -132,13 +141,13 @@ class OrdersIndexWithConstraintFilterTest extends TestCase
         $results = [];
         $idOffset = 10000;
         $parsedOffset = filter_var($offsetValue, FILTER_VALIDATE_INT);
+
         for ($i = 0; $i < $numOfOrders; $i++) {
             $order = factory('App\Order')->create([
                 'id' => $i + $idOffset]);
-            if ($parsedOffset === false || $parsedOffset <= 0) {
-                $results[] = $order->fresh()->toArray();
-            }
-            else if ($i >= $parsedOffset) {
+
+            if ($parsedOffset === false || $parsedOffset <= 0 ||
+                $i >= $parsedOffset) {
                 $results[] = $order->fresh()->toArray();
             }
         }
@@ -160,14 +169,15 @@ class OrdersIndexWithConstraintFilterTest extends TestCase
      * Provide the numbers of total orders and
      * the value of "offset" filter among for testing.
      */
-    public function numOfTotalOrdersAndOffsetFilterValueProvider() {
+    public function numOfTotalOrdersAndOffsetFilterValueProvider()
+    {
         return [
             'string_value' => [6, 'asd'],
             'negative_value' => [4, '-3'],
             'zero_value' => [3, '0'],
-            'normal_value' => [5, '3'],
-            'same_as_num_of_orders' => [7, '7'],
-            'greater_than_num_of_orders' => [10, '12'],
+            'positive_integer_value_smaller_than_num_of_orders' => [5, '3'],
+            'same_value_as_num_of_orders' => [7, '7'],
+            'greater_value_than_num_of_orders' => [10, '12'],
         ];
     }
 

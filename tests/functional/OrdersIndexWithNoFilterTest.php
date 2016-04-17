@@ -4,6 +4,8 @@ use Laravel\Lumen\Testing\DatabaseTransactions;
 
 class OrdersIndexWithNoFilterTest extends TestCase
 {
+    // Wrap every test case in a database transaction
+    // to reset the database after each test
     use DatabaseTransactions;
 
     /**
@@ -18,11 +20,13 @@ class OrdersIndexWithNoFilterTest extends TestCase
     {
         $results = [];
         $idOffset = 10000;
+
         for ($i = 0; $i < $numOfOrders; $i++) {
             $order = factory('App\Order')->create([
                 'id' => $i + $idOffset]);
             $results[] = $order->fresh()->toArray();
         }
+
         $this->get('/orders')
              ->seeJson(['effect_filters' => []])
              ->seeJson(['num_of_orders' => $numOfOrders])
@@ -32,7 +36,8 @@ class OrdersIndexWithNoFilterTest extends TestCase
     /*
      * Provide the num of orders for testing.
      */
-    public function numOfOrdersProvider() {
+    public function numOfOrdersProvider()
+    {
         return [[1], [4], [11]];
     }
 
