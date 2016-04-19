@@ -24,7 +24,7 @@ return [
         'path' => storage_path('app'),
 
         /*
-         * The date format of birthday in output order information.   
+         * The required date format of birthday.   
         */
 
         'birthday_format' => 'M j, Y',
