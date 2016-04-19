@@ -10,14 +10,14 @@ use Log;
 
 class ImportOrdersFromCsvJob extends Job
 {
-    /*
+    /**
      * The pathname of the temporary CSV file.
      * 
      * @var string
      */
     protected $filePathname;
 
-    /*
+    /**
      * Required order fields.
      * 
      * @var array
@@ -45,14 +45,17 @@ class ImportOrdersFromCsvJob extends Job
     {
         $file = new SplFileInfo($this->filePathname);
         $fileObj = $file->openFile();
+
         $fileObj->setFlags(SplFileObject::DROP_NEW_LINE |
             SplFileObject::READ_AHEAD |
             SplFileObject::SKIP_EMPTY |
             SplFileObject::READ_CSV);
         $fileObj->setCsvControl(config('ordercsv.delimiter'));
+
         $fields = $fileObj->fgetcsv();
 
         $lackFields = array_diff($this->requiredFields, $fields);
+
         if (count($lackFields) > 0) {
             Log::error('Fail to import orders: lack of required fields in the uploaded csv!', [
                 'uploaded_file' => $fileObj->getRealPath(),
@@ -65,21 +68,26 @@ class ImportOrdersFromCsvJob extends Job
                 
                 // Read each order record and save it into the database
                 $fieldValues = $fileObj->fgetcsv();
+
                 if (!is_array($fieldValues) || count($fields) !==
                     count($fieldValues)) {
                     Log::warning('Fail to import an order!', [
                         'order_fields' => $fields,
                         'field_values' => $fieldValues,
                     ]);
+
                     continue;
                 }
 
                 $record = array_combine($fields, $fieldValues);
+
                 $curOrder = Order::updateOrCreate([
                     'id' => $record['id']], $record);
+
                 if (!is_null($prevOrder) && $prevOrder->valid == false) {
                     $this->crossValidateRecordByStateZipcode($prevOrder, $curOrder);
                 }
+
                 $prevOrder = $curOrder;
 	    }
 
@@ -91,7 +99,7 @@ class ImportOrdersFromCsvJob extends Job
         }
     }
 
-    /*
+    /**
      * Handle a job failure.
      *
      * @return void
@@ -102,7 +110,7 @@ class ImportOrdersFromCsvJob extends Job
                 ['uploaded_file' => $this->filePathname]);
     }
 
-    /*
+    /**
      * A target order record is valid if it has the same state and zipcode
      * as the referred record upon order importing.
      *
@@ -116,6 +124,7 @@ class ImportOrdersFromCsvJob extends Job
             $targetOrder->state === $referredOrder->state &&
             $targetOrder->zipcode === $referredOrder->zipcode) {
             $targetOrder->valid = true;
+
             $targetOrder->save();
         }
     }

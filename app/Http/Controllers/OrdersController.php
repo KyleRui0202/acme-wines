@@ -18,13 +18,18 @@ class OrdersController extends Controller
      */
     public function index(Request $request)
     {
-       $filterParams = $request->query();
-       $orderFilterJob = new OrderFilterJob($filterParams);
-       $filteredOrders = $this->dispatch($orderFilterJob);
-       return response()->json([
-           'effect_filters' => $orderFilterJob->getParsedFilterParams(),
-           'num_of_orders' => $filteredOrders->count(),
-           'results' => $filteredOrders->toArray()]); 
+        $filterParams = $request->query();
+
+        $orderFilterJob = new OrderFilterJob($filterParams);
+
+        $filteredOrders = $this->dispatch($orderFilterJob);
+
+        $effectFilters = $orderFilterJob->getParsedFilterParams();
+
+        return response()->json([
+            'effect_filters' => $orderFilterJob->getParsedFilterParams(),
+            'num_of_orders' => $filteredOrders->count(),
+            'results' => $filteredOrders->toArray()]); 
     }
 
     /**
@@ -41,14 +46,18 @@ class OrdersController extends Controller
         ]);
 
         $csvFile = $request->file('orders');
+
         if ($csvFile->isValid()) {
-            //dd($csvFile->getClientSize());
             if ($csvFile->getClientSize() <= config('ordercsv.max_file_size')) {
                 $newFilename = uniqid().'_'.$csvFile->getClientOriginalName();
+
                 $csvFile = $csvFile->move(config('ordercsv.path'),
                     $newFilename);
+
                 $csvFilePathname = $csvFile->getRealPath();
+
                 $this->dispatch(new ImportOrdersFromCsvJob($csvFilePathname));
+
 	        return response()->json([
                     'import_status' => 'File uploaded successfuly']);
             }
@@ -67,7 +76,7 @@ class OrdersController extends Controller
     /**
      * Display the specified order.
      * 
-     * @param int $id
+     * @param int|string $id
      * @return \Illuminate\Http\JsonResponse
      */
     public function show($id)
@@ -78,6 +87,7 @@ class OrdersController extends Controller
             return response()->json([
                 'no_result' => 'The order of id='.$id.' is not found']);
         }
+
         return $order;
     }
 }
