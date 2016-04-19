@@ -42,7 +42,7 @@ This application is built based on Lumen (a PHP micro-framework), which origins 
     composer install
     php artisan migrate
 
-The last line is to build the database schema using the database migrations for this application. 
+The last line is to build the database schema using the database migrations for this application.
 
 
 
@@ -51,6 +51,7 @@ All the basic environment configuration options should be stored in `.env` file.
 
 Moreover, there are also configuration files specified for this application in the `config/` folder. One is `ordercsv` which contains basic configuration about the order CSV to be uploaded, and the other one is `validation`, in which you may configure the validators and their specific validattions rules for order importing.
 
+To launch the application you also need to set the document root to the `public/` folder for your server configiration.
 
 
 ## How To Use
