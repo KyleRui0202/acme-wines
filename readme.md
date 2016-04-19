@@ -174,13 +174,24 @@ Define the `Order` model to manage the order record and interact with the corers
 
 
 ## Testing
-There are functional tests based on [PHPUnit](https://phpunit.de/) for all the three endpoints included in the `tests/functional` folder. So you may use **phpunit** to run those tests.
+There are functional tests based on [PHPUnit](https://phpunit.de/) for all the three endpoints included in the `tests/functional` folder. So you may use **phpunit** to run those tests upon a cleaned-up database. 
 
     // Run this command from the root folder to load test configuration from phpunit.xml.
     // If "phpunit" is not available globally, you may try "vendor/bin/phpunit" instead
     phpunit tests/functional/
 
-Actually not all features of this application (e.g., processing the order importing task asynchronously in a queue) are covered in the test. I will keep working on them as well as critical unit testing.
+
+### Notice
+* You have to set `QUEUE_DRIVER` to `sync` in `phpunit.xml` before running the order importing test. 
+
+* You may need to setup another database for testing only to avoid database clean-up risk and other database operation risks during testing:
+
+    1. Set `DB_DATABASE` manually to the test database (e.g., "acmewines_testing").
+    2. Run `php artisan migrate` to setup database schema inclduing the table "orders" and tables for queue processing.
+    3. Reset `DB_DATABASE` to the product database.
+    4. Set the environment variable "DB_DATABASE" to the test database accordingly in `phpunit.xml`.
+
+Actually not all features of this application (e.g., processing the order importing task asynchronously in a queue) are covered in the test. I probably will keep working on them as well as critical unit testing.
 
 
 
