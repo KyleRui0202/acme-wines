@@ -7,7 +7,7 @@ use Validator;
 
 class Order extends Model
 {
-    /*
+    /**
      * The primary key is not auto-incrementing  
      *
      * @var boolean
@@ -70,7 +70,7 @@ class Order extends Model
      */ 
     public function scopeLimit($query, $num)
     {
-        return $query->take($num);
+        return $query->orderBy($this->primaryKey, 'asc')->take($num);
     }
 
     /**
@@ -91,6 +91,9 @@ class Order extends Model
      */ 
     public function scopeFieldMatch($query, $fieldName, $fieldValue)
     {
+        if ($fieldName === 'zipcode') {
+            $fieldValue = str_replace('*', '-', $fieldValue);
+        }
         return $query->whereRaw("lower(".$fieldName.
             ") ='".strtolower($fieldValue)."'");
     }
@@ -103,11 +106,14 @@ class Order extends Model
      */
     public function scopeFieldPartialMatch($query, $fieldName, $fieldValue)
     {
+        if ($fieldName === 'zipcode') {
+            $fieldValue = str_replace('*', '-', $fieldValue);
+        }
         return $query->whereRaw("lower(".$fieldName.
             ") like '%".strtolower($fieldValue)."%'");
     }
 
-    /*
+    /**
      * Accessor for the column "birthday"
      *
      * @return string
@@ -118,7 +124,7 @@ class Order extends Model
             ->format(config('ordercsv.birthday_format'));
     }
 
-    /*
+    /**
      * Mutator for the column "name"
      *
      * @param string $value
@@ -137,7 +143,7 @@ class Order extends Model
         }
     }
 
-    /*
+    /**
      * Mutator for the column "email"
      *
      * @param string $value
@@ -156,7 +162,7 @@ class Order extends Model
         }
     }
 
-    /*
+    /**
      * Mutator for the column "state"
      *
      * @param string $value
@@ -175,7 +181,7 @@ class Order extends Model
         }
     }
 
-    /*
+    /**
      * Mutator for the column "zipcode"
      *
      * @param string $value
@@ -201,7 +207,7 @@ class Order extends Model
 
     }
 
-    /*
+    /**
      * Mutator for the column "birthday"
      *
      * @param string $value
@@ -228,7 +234,7 @@ class Order extends Model
         }
     }
 
-    /*
+    /**
      * Validate a specific required field of orders.
      * Add and update a specific validation error if find any.
      * Otherwise we may need to remove an error (which is not implemented yet)
@@ -302,8 +308,8 @@ class Order extends Model
         return $isAttributeValid;
     }
 
-    /*
-     * Attch a validation error to the order model.
+    /**
+     * Attach a validation error to the "Order" instance.
      *
      * @param string $rule
      * @param string $message
@@ -328,7 +334,7 @@ class Order extends Model
         $this->validation_errors = $validationErrors;
     }
 
-    /*
+    /**
      * Get the value of an attribute corresponsind to
      * the same order record of the model instance
      *
@@ -352,8 +358,8 @@ class Order extends Model
         return null;
     }
 
-    /*
-     * Check if a email value with a state value break
+    /**
+     * Check if an email value with a state value breaks
      * "email_domain_restriction_for_state_rule"
      *
      * @param string $emailValue
