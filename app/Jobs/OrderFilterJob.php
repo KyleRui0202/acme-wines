@@ -48,7 +48,7 @@ class OrderFilterJob extends SyncJob
         }
     }
 
-    /*
+    /**
      * Parse the filters of each type.
      *
      * @param array $filetrParams
@@ -61,49 +61,93 @@ class OrderFilterJob extends SyncJob
             case 'constraint':
                 foreach ($filters as $filter) {
                     if (array_key_exists($filter, $filterParams)) {
-                        switch ($filter) {
-                            case 'valid':
-                                // Return TRUE for "1", "true", "on" and "yes";
-                                // return FALSE for "0", "false", "off", "no" and "";
-                                // Otherwise return NULL
-                                $isValidBool = filter_var($filterParams[$filter],
-                                    FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
-
-                                if ($isValidBool !== null) {
-                                    $this->parsedFilterParams[$filterType][$filter]=
-                                        $isValidBool;
-                                }
-                                break;
-                            case 'limit':
-                            case 'offset':
-                                $parsedInt = filter_var($filterParams[$filter],
-                                    FILTER_VALIDATE_INT);
-                                if ($parsedInt !== false && $parsedInt > 0) {
-                                    $this->parsedFilterParams[$filterType][$filter]=
-                                        $parsedInt;
-                                }
-                                break;
-                        }
+                        $this->parseConstraintFilter($filter,
+                            $filterParams[$filter]);
                     }
                 }
+
                 break;
+
             case 'field_partial_match':
                 foreach ($filters as $filter) {
-                    if (array_key_exists($filter.'_partial_match', $filterParams)) {
-                        $this->parsedFilterParams[$filterType][$filter] =
-                            $filterParams[$filter.'_partial_match'];
+                    if (array_key_exists($filter.'_partial_match',
+                        $filterParams)) {
+                        $this->parseFieldPartialMatchFilter($filter,
+                            $filterParams[$filter.'_partial_match']);
                     }
                 }
+
                 break;
+
             case 'field_match':
                 foreach ($filters as $filter) {
                     if (array_key_exists($filter, $filterParams)) {
-                        $this->parsedFilterParams[$filterType][$filter] =
-                            $filterParams[$filter];
+                        $this->parseFieldMatchFilter($filter,
+                            $filterParams[$filter]);
                     }
                 }
+
                 break;
         }
+    }
+
+    /**
+     * Parse a specific filter of the "constraint" type
+     * inclding "valid", "limit" and "offset".
+     *
+     * @param string $filter
+     * @param string $value
+     */
+    protected function parseConstraintFilter($filter, $value)
+    {
+        switch ($filter) {
+            case 'valid':
+                // Return TRUE for "1", "true", "on" and "yes";
+                // return FALSE for "0", "false", "off", "no" and "";
+                // Otherwise return NULL
+                $isValidBool = filter_var($value, FILTER_VALIDATE_BOOLEAN,
+                    FILTER_NULL_ON_FAILURE);
+
+                if ($isValidBool !== null) {
+                    $this->parsedFilterParams['constraint'][$filter] =
+                        $isValidBool;
+                }
+
+                break;
+
+            case 'limit':
+            case 'offset':
+                $parsedInt = filter_var($value, FILTER_VALIDATE_INT);
+
+                if ($parsedInt !== false && $parsedInt > 0) {
+                    $this->parsedFilterParams['constraint'][$filter] =
+                        $parsedInt;
+                }
+
+                break;
+        }
+    }
+
+    /**
+     * Parse a specific filter of the "field_partial_match" type.
+     *
+     * @param string $filter
+     * @param string $value
+     */
+    protected function parseFieldPartialMatchFilter($filter, $value)
+    {
+        $this->parsedFilterParams['field_partial_match'][$filter] = $value;
+    }
+
+    /**
+     * Parse a specific filter of the "field_match" type.
+     *
+     * @param string $filter
+     * @param string $value
+     */
+    protected function parseFieldMatchFilter($filter, $value)
+    {
+        $this->parsedFilterParams['field_match'][$filter] = $value;
     }
 
     /**
