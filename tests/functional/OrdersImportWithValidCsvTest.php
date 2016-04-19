@@ -333,20 +333,26 @@ class OrdersImportWithValidCsvTest extends TestCase
     {
         $file = new SplFileInfo(__DIR__.'/'.$pathname);
         $fileObj = $file->openFile();
+
         $fileObj->setFlags(SplFileObject::DROP_NEW_LINE |
             SplFileObject::READ_AHEAD |
             SplFileObject::SKIP_EMPTY |
             SplFileObject::READ_CSV);
         $fileObj->setCsvControl(config('ordercsv.delimiter'));
+
         $fields = $fileObj->fgetcsv();
 
         $records = [];
+
         while (!$fileObj->eof()) {
             $fieldValues = $fileObj->fgetcsv();
+
             if (!is_array($fieldValues)) {
                 continue;
             }
+
             $record = array_combine($fields, $fieldValues);
+
             if (array_key_exists('birthday', $record)) {
                 $record['birthday'] = ($tmpDate = date_create_from_format(
                     config('ordercsv.birthday_format'),

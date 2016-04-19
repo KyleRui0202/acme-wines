@@ -19,11 +19,9 @@ class OrdersIndexWithNoFilterTest extends TestCase
     public function a_request_with_no_filter_is_sent_to_orders_index_endpoint($numOfOrders)
     {
         $results = [];
-        $idOffset = 10000;
 
         for ($i = 0; $i < $numOfOrders; $i++) {
-            $order = factory('App\Order')->create([
-                'id' => $i + $idOffset]);
+            $order = factory('App\Order')->create();
             $results[] = $order->fresh()->toArray();
         }
 

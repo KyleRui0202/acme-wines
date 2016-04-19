@@ -19,8 +19,8 @@ $factory->define(App\User::class, function ($faker) {
 });
 
 $factory->define(App\Order::class, function ($faker) {
-    //dd($faker->date(config('ordercsv.birthday_format')));
     return [
+        'id' => $faker->unique()->numberBetween(0, PHP_INT_MAX),
         'name' => $faker->name,
         'email' => $faker->email,
         'state' => $faker->stateAbbr,

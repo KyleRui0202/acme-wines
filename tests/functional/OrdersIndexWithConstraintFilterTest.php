@@ -20,13 +20,11 @@ class OrdersIndexWithConstraintFilterTest extends TestCase
     {
         $validResults = [];
         $invalidResults = [];
-        $idOffset = 10000;
 
         for ($i = 0; $i < $numOfOrders; $i++) {
             $isValid = ($i < $numOfInvalidOrders) ? false : true;
 
             $order = factory('App\Order')->create([
-                'id' => $i + $idOffset,
                 'valid' => $isValid]);
 
             if ($isValid === true) {
@@ -85,28 +83,26 @@ class OrdersIndexWithConstraintFilterTest extends TestCase
     public function a_request_with_filter_limit_is_sent_to_orders_index_endpoint($numOfOrders, $limitValue)
     {
         $results = [];
-        $idOffset = 10000;
         $parsedLimit = filter_var($limitValue, FILTER_VALIDATE_INT);
 
         for ($i = 0; $i < $numOfOrders; $i++) {
-            $order = factory('App\Order')->create([
-                'id' => $i + $idOffset]);
+            $order = factory('App\Order')->create();
 
-            if ($parsedLimit === false || $parsedLimit <= 0 ||
-                $i < $parsedLimit) {
-                $results[] = $order->fresh()->toArray();
-            }
+            $results[$order->id] = $order->fresh()->toArray();
         }
-        
-        if ($parsedLimit === false || $parsedLimit <= 0) {
+
+        if ($parsedLimit !== false && $parsedLimit > 0) {
+            ksort($results);
+            $results = array_slice($results, 0, $parsedLimit);
+
             $this->get('/orders?limit='.$limitValue)
-                ->seeJson(['effect_filters' => []])
-                ->seeJson(['results' => $results]);
+                ->seeJson(['constraint' => ['limit' => $parsedLimit]])
+                ->seeJson(['results' => array_values($results)]);
         }
         else {
             $this->get('/orders?limit='.$limitValue)
-                ->seeJson(['constraint' => ['limit' => $parsedLimit]])
-                ->seeJson(['results' => $results]);
+                ->seeJson(['effect_filters' => []])
+                ->seeJson(['results' => array_values($results)]);
         }
         
     }
@@ -139,28 +135,26 @@ class OrdersIndexWithConstraintFilterTest extends TestCase
     public function a_request_with_filter_offset_is_sent_to_orders_index_endpoint($numOfOrders, $offsetValue)
     {
         $results = [];
-        $idOffset = 10000;
         $parsedOffset = filter_var($offsetValue, FILTER_VALIDATE_INT);
 
         for ($i = 0; $i < $numOfOrders; $i++) {
-            $order = factory('App\Order')->create([
-                'id' => $i + $idOffset]);
+            $order = factory('App\Order')->create();
 
-            if ($parsedOffset === false || $parsedOffset <= 0 ||
-                $i >= $parsedOffset) {
-                $results[] = $order->fresh()->toArray();
-            }
+            $results[$order->id] = $order->fresh()->toArray();
         }
         
-        if ($parsedOffset === false || $parsedOffset <= 0) {
+        if ($parsedOffset !== false && $parsedOffset > 0) {
+            ksort($results);
+            $results = array_slice($results, $parsedOffset);
+
             $this->get('/orders?offset='.$offsetValue)
-                ->seeJson(['effect_filters' => []])
-                ->seeJson(['results' => $results]);
+                ->seeJson(['constraint' => ['offset' => $parsedOffset]])
+                ->seeJson(['results' => array_values($results)]);
         }
         else {
             $this->get('/orders?offset='.$offsetValue)
-                ->seeJson(['constraint' => ['offset' => $parsedOffset]])
-                ->seeJson(['results' => $results]);
+                ->seeJson(['effect_filters' => []])
+                ->seeJson(['results' => array_values($results)]);
         }
         
     }

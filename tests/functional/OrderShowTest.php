@@ -2,7 +2,7 @@
 
 use Laravel\Lumen\Testing\DatabaseTransactions;
 
-class OrdersIndexWithNoFilterTest extends TestCase
+class OrderShowTest extends TestCase
 {
     // Wrap every test case in a database transaction
     // to reset the database after each test
@@ -13,81 +13,84 @@ class OrdersIndexWithNoFilterTest extends TestCase
      * the corresponding order exists.
      *
      * @test
-     * @dataProvider numOfOrdersAndExistingOrderIdProvider
+     * @dataProvider numOfOrdersProvider
      * @param int $numOfOrders
-     * @param int $targetId
      * @return void
      */
-    public function a_request_with_existing_id_is_sent_to_order_show_endpoint($numOfOrders, $targetId)
+    public function a_request_with_existing_id_is_sent_to_order_show_endpoint($numOfOrders)
     {
-        $idOffset = 10000;
-
-        for ($i = 0; $i < $numOfOrders-1; $i++) {
-            if ($targetId != $i + $idOffset) {
-                $order = factory('App\Order')->create([
-                    'id' => $i + $idOffset]);
-            }
+        if ($numOfOrders > 1) {
+            $orders = factory('App\Order', $numOfOrders)->create();
         }
+        
+        // Create and save another "Order" instance with unique "id"
+        // as the targte "id" to show
+        $targetOrder = factory('App\Order')->create();
+        $result = $targetOrder->fresh()->toArray();
 
-        $order = factory('App\Order')->create([
-                'id' => $targetId]);
-
-        $result = $order->fresh()->toArray();
-
-        $this->get('/orders/'.$targetId)
+        $this->get('/orders/'.$targetOrder->id)
              ->seeJson($result);
-    }
-
-    /*
-     * Provide the num of orders and the id of
-     * an existing order for testing.
-     */
-    public function numOfOrdersAndExistingOrderIdProvider()
-    {
-        return [
-            'normal_integer_id' => [1, 50],
-            'max_integer_id' => [4, PHP_INT_MAX],
-            'min_zero_id' => [7, 0],
-        ];
     }
 
     /**
      * A test for the endpoint "orders/{id}" when
-     * the corresponding order does not exist.
+     * the corresponding order to the "id" does not exist.
      *
      * @test
-     * @dataProvider numOfOrdersAndNonExistingOrderIdProvider
+     * @dataProvider numOfOrdersProvider
      * @param int $numOfOrders
-     * @param string $targetId
      * @return void
      */
-    public function a_request_with_non_existing_id_is_sent_to_order_show_endpoint($numOfOrders, $targetId)
+    public function a_request_with_non_existing_id_is_sent_to_order_show_endpoint($numOfOrders)
     {
-        $idOffset = 10000;
+        $orders = factory('App\Order', $numOfOrders)->create();
+        
+        // Create another "Order" instance with unique "id" but does not save it
+        // into the database so that we can use its "id" as the non-existing "id" 
+        $targetOrder = factory('App\Order')->make();
 
-        for ($i = 0; $i < $numOfOrders-1; $i++) {
-            if ($targetId != $i + $idOffset) {
-                $order = factory('App\Order')->create([
-                    'id' => $i + $idOffset]);
-            }
-        }
-
-        $this->get('/orders/'.$targetId)
+        $this->get('/orders/'.$targetOrder->id)
              ->seeJsonStructure(['no_result']);
     }
 
     /*
-     * Provide the num of orders and the id of
-     * an existing order for testing.
+     * Provide the total num of orders for testing.
      */
-    public function numOfOrdersAndNonExistingOrderIdProvider()
+    public function numOfOrdersProvider()
     {
         return [
-            'positive_integer_id' => [1, '50'],
-            'max_integer_id' => [4, (string) PHP_INT_MAX],
-            'negative_integer_id' => [3, '-1'],
-            'float_id' => [7, '4.5'],
-            'string_id' => [5, 'ert'],
+            [1], [7], [12],
+        ];
+    }
+    
+    /**
+     * A test for the endpoint "orders/{id}" when
+     * the "id" is not a valid non-negative integer.
+     *
+     * @test
+     * @dataProvider invalidIdProvider
+     * @param string invalidId
+     * @return void
+     */
+    public function a_request_with_invalid_id_is_sent_to_order_show_endpoint($invalidId)
+    {
+        $numOfOrders = 10;
+        $orders = factory('App\Order', $numOfOrders)->create();
+
+        $this->get('/orders/'.$invalidId)
+             ->seeJsonStructure(['no_result']);
+    }
+
+    /*
+     * Provide the invalid form of "id" (not
+     * a non-negative integer) for testing.
+     */
+    public function invalidIdProvider()
+    {
+        return [
+            'negative_integer_id' => ['-2'],
+            'float_id' => ['4.5'],
+            'non_numeric_id' => ['ert'],
         ];
     }
 
