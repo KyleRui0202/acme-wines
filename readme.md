@@ -19,7 +19,7 @@ a set of validation rules (listed below) and persist them with their validation 
 6. The sum of digits in a zip code may not exceed 20 ("90210": 9+0+2+1+0 = 12)
 7. Customers from NY may not have .net email addresses
 8. If the state and zip code of the following record is the same as the
-current record and are not blank, it automatically passes.
+current record and are not blank, it automatically passes. (Notice: the validation failures for the record itself will still be attached though)
 
 Any validation failures will be attached to the corresponding order in the database.
 
@@ -47,9 +47,9 @@ The last line is to build the database schema using the database migrations for 
 
 
 ## Configuration
-All the basic environment configuration options should be stored in `.env` file. If this file does not exist, you may find an `.env.example ` file. Then you can copy and paste it as `.env` and edit the configuration options including the debugging, logging, databases, queue driver, etc.
+All the basic environment configuration options should be stored in `.env` file. If this file does not exist, you may find an `.env.example ` file, copy and paste it as `.env` and edit the configuration options including the debugging, logging, databases, queue driver, etc.
 
-Moreover, there are also configuration files specified for this application in the `config/` folder. One is `ordercsv` which contains basic configuration about the order CSV to be uploaded, and the other one is `validation`, in which you may configure the validators to apply to order importing.
+Moreover, there are also configuration files specified for this application in the `config/` folder. One is `ordercsv` which contains basic configuration about the order CSV to be uploaded, and the other one is `validation`, in which you may configure the validators and their specific validattions rules for order importing.
 
 
 
@@ -153,7 +153,7 @@ This application is working based on [Lumen installation](http://lumen.laravel.c
 
 
 ### app/Http/routes.php
-All the routes for this application (the three endpoints) are defined in `app/Http/routs.php`.
+All the routes for this application (the three endpoints) are defined in `app/Http/routes.php`.
 
 
 ### app/Http/Controllers/OrdersController.php
