@@ -55,7 +55,7 @@ You may use the following command to import the "order_csv_file.csv":
 where the option `-i` makes the result display display protocol headers.
 
 ### /orders
-This application has there categories of filters to retrieve orders:
+This endpoint has three categories of filters to retrieve orders:
 
 * Constraint: `valid`, `limit` and `offset`
 * Field Match: `name`, `email`, `state` and `zipcode`
@@ -126,9 +126,24 @@ You are allowed to retrieve an order of specified order "id":
     `curl -i localhost:8888/orders/3`
 
 ## Application Structure
-This application is working based on [Lumen installation](http://lumen.laravel.com/). The core code are located in the `app/` folder, in which I implemented the routing (`app/Http/routes.php`), controller (`app/Http/Controllers/OrdersController.php`) and model (`app/Order.php`).
+This application is working based on [Lumen installation](http://lumen.laravel.com/). The core code are located in the `app/` folder, in which I implemented the routing (`app/Http/routes.php`), controller (`app/Http/Controllers/OrdersController.php`) and model (`app/Order.php`). I also wrap two independent tasks (order filtering and order importing) into two jobs (the former is synchronous and the latter is queueable) respectively, and dispatch them from the controller.
 
-I also wrap two independent tasks (order filtering and order importing) into two jobs (the former is synchronous and the latter is queueable) respectively, and dispatch them from the controller.
+### app/Http/routes.php
+All the routes for this application (the three endpoints) are defined in `app/Http/routs.php`.
+
+### app/Http/Controllers/OrdersController.php
+Define the request handling logic for all the three endpoints:
+
+* **/orders/import**: defined in the method `OrdersController@import`, which retrieves filters from the query string of url, dispatches order filtering job and retruns the filtered orders with metadata.
+* **/orders**: defined in the method `OrdersController@index`, which validate uploaded csv file, dispatch order importing job and return the importing status.
+* **/orders/{id}**: defined in the method `OrdersController@show`, which determines if the order of the specified order id exists and returns the corresponding order or information.
+
+### app/Order.php
+Define the `Order` model to manage the order record and interact with the corersponding table in the database. It conatains but not limited to the following parts:
+
+* Local scopes (e.g., `scopeFieldMatch`): apply order index filters to corresponding queries
+* Field mutators (e.g., `setNameAttribute`): parse and validate the imported order record according to a specific field
+* Attribute Casting (`$casts`): convert specific fields to the specified data types.
 
 ## Testing
 There are functional tests based on [PHPUnit](https://phpunit.de/) for all the three endpoints included in the `tests/functional` folder. So you may use **phpunit** to run those tests.
