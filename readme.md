@@ -148,7 +148,8 @@ Define the `Order` model to manage the order record and interact with the corers
 ## Testing
 There are functional tests based on [PHPUnit](https://phpunit.de/) for all the three endpoints included in the `tests/functional` folder. So you may use **phpunit** to run those tests.
 
-    // Run this command from the root folder to load test configuration from phpunit.xml. If "phpunit" is not available globally, you may try "vendor/bin/phpunit" instead
+    // Run this command from the root folder to load test configuration from phpunit.xml.
+    // If "phpunit" is not available globally, you may try "vendor/bin/phpunit" instead
     phpunit tests/functional/
 
 
