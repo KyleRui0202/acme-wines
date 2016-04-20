@@ -138,7 +138,8 @@ You are allowed to retrieve the orders that have some fields (including "name", 
     // Retrieve all the orders that come from an address of which zipcode contains "1321"
     curl -i localhost:8888/orders?zipcode_partial_match=1321
 
-Of course you may combine any of the filters for the enpoint `/orders`, for example, `curl -i localhost:8888/orders?valid=1&limit=30&state=ny$name_partial_match=Dav`
+
+Of course you may combine any of the filters for the endpoint `/orders`, for example, `curl -i localhost:8888/orders?valid=1&limit=30&state=ny$name_partial_match=Dav`
 
 
 ### /orders/{id}
@@ -160,8 +161,8 @@ All the routes for this application (the three endpoints) are defined in `app/Ht
 ### app/Http/Controllers/OrdersController.php
 Define the request handling logic for all the three endpoints:
 
-* **/orders/import**: defined in the method `OrdersController@import`, which retrieves filters from the query string of url, dispatches order filtering job and retruns the filtered orders with metadata.
-* **/orders**: defined in the method `OrdersController@index`, which validate uploaded csv file, dispatch order importing job and return the importing status.
+* **/orders/import**: defined in the method `OrdersController@import`, which validates uploaded csv file, dispatches order importing job and return the importing status.
+* **/orders**: defined in the method `OrdersController@index`, which retrieves filters from the query string of url, dispatches order filtering job and retruns the filtered orders with metadata.
 * **/orders/{id}**: defined in the method `OrdersController@show`, which determines if the order of the specified order id exists and returns the corresponding order or information.
 
 
