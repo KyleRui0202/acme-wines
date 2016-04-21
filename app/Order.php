@@ -266,7 +266,7 @@ class Order extends Model
                     $validatorRules[$attribute.'.'.$ruleName] = $rule['rule_spec'];
                 }
 
-                if ($ruleName === 'domain_restriction_for_stat') {
+                if ($ruleName === 'domain_restriction_for_state') {
                     $curState = $this->getAttributeForSameOrder('state');
                     //dd($curState);
                     if (!is_null($curState)) {
