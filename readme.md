@@ -196,11 +196,6 @@ There are functional tests based on [PHPUnit](https://phpunit.de/) for all the t
 Actually not all features of this application (e.g., processing the order importing task asynchronously in a queue) are covered in the test. I probably will keep working on them as well as critical unit testing.
 
 
-
-## Acknowledgement
-Chris, thank you for your patience! And I do apologize for the delayed submission of this code challenge. Actually I did try my best to complete it not just as a test but also make it something in which a real-world project may be built upon in the future. So I spent quite some time on testing and debugging it as well as introduced additional features. I'm sorry again for any inconvinience.
-
-
   
 ## License
 
