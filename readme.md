@@ -10,7 +10,7 @@ This is a simple mock wine ordering application that has the three basic endpoin
 This is the endpoint for people to upload an order CSV file containing the required order records. It also validates the orders according to 
 a set of validation rules (listed below) and persist them with their validation results. It should also store a list of any validation failures the orders might have.
 
-#### Validation rules:
+#### Default Validation Rules:
 1. The fields "id", "name", "email", "state", "zipcode" and "birthday" are required in the csv. If a field is missing from the headers, then the import should not process. If a field value is missing within an order record, the related validation failure should be attached.
 2. No wine can ship to **New Jersey (NJ)**, **Connecticut (CT)**, **Pennsylvania (PA)**, **Massachusetts (MA)**, **Illinois (IL)**, **Idaho (ID)** or **Oregon (OR)**
 3. Valid zip codes must be 5 or 9 digits
@@ -21,7 +21,7 @@ a set of validation rules (listed below) and persist them with their validation 
 8. If the state and zip code of the following record is the same as the
 current record and are not blank, it automatically passes. (Notice: the validation failures for the record itself will still be attached though)
 
-Any validation failures will be attached to the corresponding order in the database.
+**Notice**: Each of the above rules is configurable **except** Rule 1 and 8 (more details in **Configuration** section), and the validation failures will be attached to each corresponding order in the database.
 
 
 ### /orders
@@ -47,14 +47,14 @@ The last line is to build the database schema using the database migrations for 
 
 
 ## Configuration
-All the basic environment configuration options should be stored in `.env` file. If this file does not exist, you may find an `.env.example ` file, copy and paste it as `.env` and edit the configuration options including the debugging, logging, databases, queue driver, etc.
+All the basic environment configuration options should be stored in `.env` file. If this file does not exist, you may find an `.env.example ` file, copy and paste it as `.env` and edit the configuration options for debugging, logging, databases, queue driver, etc.
 
-Moreover, there are also configuration files specified for this application in the `config/` folder. One is `ordercsv` which contains basic configuration about the order CSV to be uploaded, and the other one is `validation`, in which you may configure the validators and their specific validattions rules for order importing.
+Moreover, there are also configuration files specified for this application in the `config/` folder. One is `ordercsv` which contains basic configuration about the order CSV to be uploaded, and the other one is `validation`, in which you may configure the validators and change their default validations rules for order importing.
 
 To launch the application you also need to set the document root to the `public/` folder for your server configiration.
 
 
-## How To Use
+## How To Use It
 You may use `curl` command to connect and send requests to the url of the three endpoints from Linux/Unix console. Assume that this application is running on the `localhost` and the port `8888`.
 
 
